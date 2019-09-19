@@ -134,7 +134,7 @@ let rec valid_ndprooftree proof = match proof with
 																								| And(p,q) -> isSameProp p prop
 																								| _ -> false
 																							) in
-																	checkgamma && checkchildprop
+																	checkgamma && checkchildprop && (valid_ndprooftree child)
 																)
 															else false
 															)
@@ -149,7 +149,7 @@ let rec valid_ndprooftree proof = match proof with
 																								| And(p,q) -> isSameProp q prop
 																								| _ -> false
 																							) in
-																	checkgamma && checkchildprop
+																	checkgamma && checkchildprop && (valid_ndprooftree child)
 																)
 															else false
 															)
@@ -164,7 +164,7 @@ let rec valid_ndprooftree proof = match proof with
 																								| Or(p,q) -> isSameProp p childprop
 																								| _ -> false
 																							) in
-																	checkgamma && checkchildprop
+																	checkgamma && checkchildprop && (valid_ndprooftree child)
 																)
 															else false
 															)
@@ -179,7 +179,7 @@ let rec valid_ndprooftree proof = match proof with
 																								| Or(p,q) -> isSameProp q childprop
 																								| _ -> false
 																							) in
-																	checkgamma && checkchildprop
+																	checkgamma && checkchildprop && (valid_ndprooftree child)
 																)
 															else false
 															)
@@ -202,7 +202,7 @@ let rec valid_ndprooftree proof = match proof with
 																	| Or(p, q) -> (
 																					let checkgamma2 = (isSameList childgamma2 (p::gamma)) in
 																					let checkgamma3 = (isSameList childgamma3 (q::gamma)) in
-																					checkchildprop2 && checkchildprop3 && checkgamma1 && checkgamma2 && checkgamma3
+																					checkchildprop2 && checkchildprop3 && checkgamma1 && checkgamma2 && checkgamma3 && (valid_ndprooftree child1) && (valid_ndprooftree child2) && (valid_ndprooftree child3)
 																				)
 																	| _ -> false)
 																)
@@ -210,3 +210,16 @@ let rec valid_ndprooftree proof = match proof with
 															)
 										)
 ;;
+let rec mergeList g delta = match delta with
+| [] -> g
+| x::xs -> if(isMember x g) then (mergeList g xs) else (mergeList (g@[x]) xs)
+;;
+
+let rec pad delta proof = match proof with
+| Rule (gamma, prop, rule, childproof) -> Rule((mergeList gamma delta), prop, rule, (map (pad delta) childproof))
+;;
+
+
+
+
+
