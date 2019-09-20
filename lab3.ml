@@ -91,7 +91,7 @@ let rec valid_ndprooftree proof = match proof with
 																	let checkgamma = (isSameList childgamma gamma) in
 																	let childprop = extractprop child in
 																	let checkchildprop = (isSameProp F childprop) in
-																	checkgamma && checkchildprop
+																	checkgamma && checkchildprop && (valid_ndprooftree child)
 																)
 															else false
 															)
@@ -103,7 +103,7 @@ let rec valid_ndprooftree proof = match proof with
 																	let checkgamma = (isSameList childgamma ((Not prop)::gamma)) in
 																	let childprop = extractprop child in
 																	let checkchildprop = (isSameProp F childprop) in
-																	checkgamma && checkchildprop
+																	checkgamma && checkchildprop && (valid_ndprooftree child)
 																)
 															else false
 															)
@@ -218,6 +218,79 @@ let rec mergeList g delta = match delta with
 let rec pad delta proof = match proof with
 | Rule (gamma, prop, rule, childproof) -> Rule((mergeList gamma delta), prop, rule, (map (pad delta) childproof))
 ;;
+
+exception InvalidProof;;
+
+
+let rec minimalgaama l proof = match proof with
+| Rule (gamma, prop, rule, childproof) -> (
+											match rule with
+											| Hyp -> prop::l
+											| _ -> (fold_left (fun acc x -> minimalgaama acc x) l childproof)
+											)
+;;
+
+
+let rec setGamma minGaama proof = match proof with
+| Rule (gamma, prop, rule, childproof) -> (match rule with
+											| Iimplies -> (match prop with
+															| Impl(p,q) -> (Rule (minGaama, prop, rule, (map (setGamma (p::minGaama)) childproof)))
+															| _ -> (raise InvalidProof)
+															)
+											| Classical -> (Rule(minGaama, prop, rule, (map (setGamma ((Not prop)::minGaama)) childproof)))
+											| _ -> (Rule(minGaama, prop, rule, (map (setGamma minGaama) childproof)))
+										)
+;;
+
+let prune proof = let minGaama = minimalgaama [] proof in
+					setGamma minGaama proof
+				;;
+
+exception Wronggraft;;
+
+let rec findProp prop prooflist = match prooflist with
+| [] -> raise Wronggraft
+| x::xs -> (match x with
+			 Rule (gamma, propproof, rule, childproof) -> (
+														if (isSameProp prop propproof) then x else (findProp prop xs)
+														)
+		)
+;;
+
+let rec addGaamaToProof p proof = match proof with
+| Rule (gaama, prop, rule, childproof) -> Rule (p::gaama, prop, rule, (map (addGaamaToProof p) childproof))
+;;
+
+let addGaama p prooflist = (map (addGaamaToProof p) prooflist)
+;;
+
+let rec graftAndReplace finGaama prooflist proof= match proof with
+| Rule (gamma, prop, rule, childproof) -> (
+											match rule with
+											| Hyp -> (findProp prop prooflist)
+											| Iimplies -> (
+															match prop with
+															| Impl(p,q) -> (let newprooflist = (addGaama p prooflist) in
+																				(Rule (finGaama, prop, rule, 
+																					(map (graftAndReplace (p::finGaama) newprooflist) childproof)
+																				))
+																				)
+															| _ -> (raise Wronggraft)
+														)
+											| Classical -> (
+															let newprooflist = (addGaama (Not prop) prooflist) in
+															(Rule (finGaama, prop, rule,
+																(map (graftAndReplace ((Not prop)::finGaama) newprooflist) childproof)))
+															)
+											| _ -> Rule( finGaama, prop, rule, (map (graftAndReplace finGaama prooflist) childproof))
+											)
+;;
+
+let graft proof prooflist = let finGaama = (match (hd prooflist) with
+											| Rule (gamma, prop, rule, childproof) -> gamma
+										) in
+							graftAndReplace finGaama prooflist proof
+							;;
 
 
 
