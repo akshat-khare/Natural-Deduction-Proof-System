@@ -257,12 +257,6 @@ let rec findProp prop prooflist = match prooflist with
 		)
 ;;
 
-let rec addGaamaToProof p proof = match proof with
-| Rule (gaama, prop, rule, childproof) -> Rule (p::gaama, prop, rule, (map (addGaamaToProof p) childproof))
-;;
-
-let addGaama p prooflist = (map (addGaamaToProof p) prooflist)
-;;
 
 let rec graftAndReplace finGaama prooflist proof= match proof with
 | Rule (gamma, prop, rule, childproof) -> (
@@ -270,7 +264,7 @@ let rec graftAndReplace finGaama prooflist proof= match proof with
 											| Hyp -> (findProp prop prooflist)
 											| Iimplies -> (
 															match prop with
-															| Impl(p,q) -> (let newprooflist = (addGaama p prooflist) in
+															| Impl(p,q) -> (let newprooflist = (map (pad [p]) childproof) in
 																				(Rule (finGaama, prop, rule, 
 																					(map (graftAndReplace (p::finGaama) newprooflist) childproof)
 																				))
@@ -278,7 +272,7 @@ let rec graftAndReplace finGaama prooflist proof= match proof with
 															| _ -> (raise Wronggraft)
 														)
 											| Classical -> (
-															let newprooflist = (addGaama (Not prop) prooflist) in
+															let newprooflist = (map (pad [(Not(prop))]) childproof) in
 															(Rule (finGaama, prop, rule,
 																(map (graftAndReplace ((Not prop)::finGaama) newprooflist) childproof)))
 															)
@@ -291,8 +285,3 @@ let graft proof prooflist = let finGaama = (match (hd prooflist) with
 										) in
 							graftAndReplace finGaama prooflist proof
 							;;
-
-
-
-
-
